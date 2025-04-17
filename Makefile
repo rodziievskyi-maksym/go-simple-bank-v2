@@ -1,14 +1,20 @@
 PROJECT_NAME = "go-simple-bank-v2"
 
+#Local settings
 BINARY_NAME = ${PROJECT_NAME}
 BINARIES = "./bin"
 MAIN_DIR = "cmd/${BINARY_NAME}"
 
+#GitHub Info
 GIT_LOCAL_NAME = "rodziievskyi-maksym"
 GIT_LOCAL_EMAIL = "rodziyevskydev@gmail.com"
-
 GITHUB = "github.com/${GIT_LOCAL_NAME}/${PROJECT_NAME}"
-POSTGRES_URL = "postgresql://postgres:postgres@localhost:5434/daily-dose?sslmode=disable"
+
+#PostgreSQL
+POSTGRES_USER = "dev"
+POSTGRES_PASS = "devpass"
+POSTGRES_DB = "go-simple-bank-v2"
+POSTGRES_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@localhost:5434/${POSTGRES_DB}?sslmode=disable"
 
 init:
 	@echo "::> Creating a module root..."
@@ -58,28 +64,29 @@ git-init:
 	@echo "::> Finished"
 
 ## Database operations
+DOCKER_CONTAINER_NAME = go-simple-bank-db-v2
 postgres:
-	docker run --name go-simple-bank-db -p 5433:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:15.1-alpine
+	docker run --name ${DOCKER_CONTAINER_NAME} -p 5434:5432 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASS} -d postgres:latest-alpine
 
 create-db:
-	docker exec -it go-simple-bank-db createdb --username=root --owner=root go-simple-bank
+	docker exec -it ${DOCKER_CONTAINER_NAME} createdb --username=${POSTGRES_USER} --owner=${POSTGRES_USER} ${POSTGRES_DB}
 
 drop-db:
-	docker exec -it go-simple-bank-db dropdb go-simple-bank
+	docker exec -it ${DOCKER_CONTAINER_NAME} dropdb ${POSTGRES_DB}
 
+#Migration commands
 migrate-up:
-	migrate -path migrations -database "postgresql://root:secret@localhost:5433/go-simple-bank?sslmode=disable" -verbose up
+	migrate -path migrations -database ${POSTGRES_URL} -verbose up
 migrate-down:
-	migrate -path migrations -database "postgresql://root:secret@localhost:5433/go-simple-bank?sslmode=disable" -verbose down
-
+	migrate -path migrations -database ${POSTGRES_URL} -verbose down
 migrate-up-last:
-	migrate -path migrations -database "postgresql://root:secret@localhost:5433/go-simple-bank?sslmode=disable" -verbose up 1
+	migrate -path migrations -database ${POSTGRES_URL} -verbose up 1
 migrate-down-last:
-	migrate -path migrations -database "postgresql://root:secret@localhost:5433/go-simple-bank?sslmode=disable" -verbose down 1
-
+	migrate -path migrations -database ${POSTGRES_URL} -verbose down 1
 # Create migration file
 cm:
 	@migrate create -ext sql -dir migrations -seq $(a)
+
 
 sqlc:
 	@cd "internal/infrastructure/database/"; sqlc generate
