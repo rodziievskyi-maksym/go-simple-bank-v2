@@ -66,7 +66,7 @@ git-init:
 ## Database operations
 DOCKER_CONTAINER_NAME = go-simple-bank-db-v2
 postgres:
-	docker run --name ${DOCKER_CONTAINER_NAME} -p 5434:5432 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASS} -d postgres:latest-alpine
+	docker run --name ${DOCKER_CONTAINER_NAME} -p 5434:5432 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASS} -d postgres:16.2-alpine
 
 create-db:
 	docker exec -it ${DOCKER_CONTAINER_NAME} createdb --username=${POSTGRES_USER} --owner=${POSTGRES_USER} ${POSTGRES_DB}
@@ -76,20 +76,21 @@ drop-db:
 
 #Migration commands
 migrate-up:
-	migrate -path migrations -database ${POSTGRES_URL} -verbose up
+	migrate -path db/migrations -database ${POSTGRES_URL} -verbose up
 migrate-down:
-	migrate -path migrations -database ${POSTGRES_URL} -verbose down
+	migrate -path db/migrations -database ${POSTGRES_URL} -verbose down
 migrate-up-last:
-	migrate -path migrations -database ${POSTGRES_URL} -verbose up 1
+	migrate -path db/migrations -database ${POSTGRES_URL} -verbose up 1
 migrate-down-last:
-	migrate -path migrations -database ${POSTGRES_URL} -verbose down 1
+	migrate -path db/migrations -database ${POSTGRES_URL} -verbose down 1
 # Create migration file
 cm:
-	@migrate create -ext sql -dir migrations -seq $(a)
+	@migrate create -ext sql -dir db/migrations -seq $(a)
 
 
 sqlc:
-	@cd "internal/infrastructure/database/"; sqlc generate
+	@#cd "internal/infrastructure/database/"; sqlc generate
+	sqlc generate
 
 test:
 	go test -v -cover ./...
