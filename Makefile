@@ -14,7 +14,8 @@ GITHUB = "github.com/${GIT_LOCAL_NAME}/${PROJECT_NAME}"
 POSTGRES_USER = "dev"
 POSTGRES_PASS = "devpass"
 POSTGRES_DB = "go-simple-bank-v2"
-POSTGRES_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@localhost:5434/${POSTGRES_DB}?sslmode=disable"
+POSTGRES_PORT = "5435"
+POSTGRES_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable"
 
 init:
 	@echo "::> Creating a module root..."
@@ -66,13 +67,16 @@ git-init:
 ## Database operations
 DOCKER_CONTAINER_NAME = go-simple-bank-db-v2
 postgres:
-	docker run --name ${DOCKER_CONTAINER_NAME} -p 5434:5432 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASS} -d postgres:16.2-alpine
+	docker run --name ${DOCKER_CONTAINER_NAME} -p ${POSTGRES_PORT}:5432 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASS} -d postgres:latest
 
 create-db:
 	docker exec -it ${DOCKER_CONTAINER_NAME} createdb --username=${POSTGRES_USER} --owner=${POSTGRES_USER} ${POSTGRES_DB}
 
 drop-db:
 	docker exec -it ${DOCKER_CONTAINER_NAME} dropdb ${POSTGRES_DB}
+
+db-connect:
+	docker exec -it ${DOCKER_CONTAINER_NAME} psql -d go-simple-bank-v2 -U dev -W
 
 #Migration commands
 migrate-up:
@@ -89,7 +93,6 @@ cm:
 
 
 sqlc:
-	@#cd "internal/infrastructure/database/"; sqlc generate
 	sqlc generate
 
 test:
