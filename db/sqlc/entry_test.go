@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
 	"github.com/rodziievskyi-maksym/go-simple-bank-v2/util"
@@ -11,7 +10,7 @@ import (
 
 func createRandomEntry(t *testing.T, accountId int64) Entry {
 	params := CreateEntryParams{
-		AccountID: sql.NullInt64{Int64: accountId, Valid: true},
+		AccountID: accountId,
 		Amount:    util.RandomMoney(),
 	}
 
@@ -61,7 +60,7 @@ func TestListEntries(t *testing.T) {
 	}
 
 	params := ListEntriesParams{
-		AccountID: sql.NullInt64{Int64: randomAccount.ID, Valid: true},
+		AccountID: randomAccount.ID,
 		Limit:     int32(randomNum),
 	}
 	entries, err := testQueries.ListEntries(context.Background(), params)

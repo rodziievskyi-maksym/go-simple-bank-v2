@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
 	"github.com/rodziievskyi-maksym/go-simple-bank-v2/util"
@@ -15,8 +14,8 @@ import (
 
 func createRandomTransfer(t *testing.T, fromAccountId, toAccountId int64) Transfer {
 	params := CreateTransferParams{
-		FromAccountID: sql.NullInt64{Int64: fromAccountId, Valid: true},
-		ToAccountID:   sql.NullInt64{Int64: toAccountId, Valid: true},
+		FromAccountID: fromAccountId,
+		ToAccountID:   toAccountId,
 		Amount:        util.RandomMoney(),
 	}
 
@@ -69,8 +68,8 @@ func TestListTransfers(t *testing.T) {
 	}
 
 	params := ListTransfersParams{
-		FromAccountID: sql.NullInt64{Int64: account1.ID, Valid: true},
-		ToAccountID:   sql.NullInt64{Int64: account2.ID, Valid: true},
+		FromAccountID: account1.ID,
+		ToAccountID:   account2.ID,
 		Limit:         int32(randomNum),
 	}
 

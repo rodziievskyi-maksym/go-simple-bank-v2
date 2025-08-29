@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createEntry = `-- name: CreateEntry :one
@@ -16,8 +15,8 @@ VALUES ($1, $2) RETURNING id, account_id, amount, created_at
 `
 
 type CreateEntryParams struct {
-	AccountID sql.NullInt64 `json:"account_id"`
-	Amount    int64         `json:"amount"`
+	AccountID int64 `json:"account_id"`
+	Amount    int64 `json:"amount"`
 }
 
 func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry, error) {
@@ -37,7 +36,7 @@ SELECT id, account_id, amount, created_at FROM entries
 WHERE account_id = $1 LIMIT 1
 `
 
-func (q *Queries) GetEntry(ctx context.Context, accountID sql.NullInt64) (Entry, error) {
+func (q *Queries) GetEntry(ctx context.Context, accountID int64) (Entry, error) {
 	row := q.db.QueryRowContext(ctx, getEntry, accountID)
 	var i Entry
 	err := row.Scan(
@@ -57,9 +56,9 @@ OFFSET $3
 `
 
 type ListEntriesParams struct {
-	AccountID sql.NullInt64 `json:"account_id"`
-	Limit     int32         `json:"limit"`
-	Offset    int32         `json:"offset"`
+	AccountID int64 `json:"account_id"`
+	Limit     int32 `json:"limit"`
+	Offset    int32 `json:"offset"`
 }
 
 func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error) {
