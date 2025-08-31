@@ -34,6 +34,7 @@ func TestTransferTx(t *testing.T) {
 			results <- result
 		}()
 	}
+
 	existed := make(map[int]bool)
 	for i := 0; i < concurrentTransactions; i++ {
 		err := <-errs
@@ -84,7 +85,7 @@ func TestTransferTx(t *testing.T) {
 		require.NotEmpty(t, toAccount)
 		require.Equal(t, account2.ID, toAccount.ID)
 
-		fmt.Printf(">> balances on each TX:\n Account 1 = %d \n Account 2 = %d \n", fromAccount.Balance, toAccount.Balance)
+		fmt.Printf(">> balances on [%d] TX:\n Account 1 = %d \n Account 2 = %d \n", i, fromAccount.Balance, toAccount.Balance)
 
 		// check account balances diff
 		//must be equal to amount variable -> account1.Balance = 761 - fromAccount.Balance = 751 (subtracted amount) = 10
