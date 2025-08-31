@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,6 +13,7 @@ func TestTransferTx(t *testing.T) {
 
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)
+	fmt.Printf(">> balances before transfer:\n Account 1 = %d \n Account 2 = %d \n", account1.Balance, account2.Balance)
 
 	amount := int64(10)
 	arg := TransferTxParams{
@@ -32,7 +34,7 @@ func TestTransferTx(t *testing.T) {
 			results <- result
 		}()
 	}
-
+	existed := make(map[int]bool)
 	for i := 0; i < concurrentTransactions; i++ {
 		err := <-errs
 		require.NoError(t, err)
@@ -73,7 +75,7 @@ func TestTransferTx(t *testing.T) {
 		_, err = store.GetEntry(context.Background(), toEntry.AccountID)
 		require.NoError(t, err)
 
-		//TODO: check account balance
+		// check accounts
 		fromAccount := result.FromAccount
 		require.NotEmpty(t, fromAccount)
 		require.Equal(t, account1.ID, fromAccount.ID)
@@ -82,12 +84,39 @@ func TestTransferTx(t *testing.T) {
 		require.NotEmpty(t, toAccount)
 		require.Equal(t, account2.ID, toAccount.ID)
 
-		//diff
-		diff1 := account1.Balance - fromAccount.Balance // account 1 balance (50) - updated Balance Account 1  = was 50 now 40
-		diff2 := toAccount.Balance - account2.Balance   //  updated balance of Account 2 (toAccount) - account 2 balance before transaction = 40 now 50
-		require.Equal(t, diff1, diff2)
-		require.True(t, diff1 > 0)
-		//TODO: what's going on here?
-		require.True(t, diff1%amount == 0)
+		fmt.Printf(">> balances on each TX:\n Account 1 = %d \n Account 2 = %d \n", fromAccount.Balance, toAccount.Balance)
+
+		// check account balances diff
+		//must be equal to amount variable -> account1.Balance = 761 - fromAccount.Balance = 751 (subtracted amount) = 10
+		diffFromAccount := account1.Balance - fromAccount.Balance
+		//must be equal to amount variable -> toAccount.Balance = 418 init value + amount (10 transferred from account 1) = 419 - 418 init value of 418 = 10
+		diffToAccount := toAccount.Balance - account2.Balance
+		require.Equal(t, diffFromAccount, diffToAccount)
+		//check the validity of transfer account must still have positive balance to be able to process the transfer
+		require.True(t, diffFromAccount > 0)
+
+		// this interesting check shows us that we have right calculation on concurrent transactions
+		//TODO: ask LLM what's going on here
+		require.True(t, diffFromAccount%amount == 0) // amount, 2 * amount, 3 * amount
+
+		//each concurrent transaction increate difference by the amount  1 - 10, 2 - 20, 3 - 30 and by dividing by amount
+		//we've got the number from 1 to N (numbers on concurrent transactions)
+		successfulIteration := int(diffFromAccount / amount)
+		require.True(t, successfulIteration >= 1 && successfulIteration <= concurrentTransactions)
+		require.NotContains(t, existed, successfulIteration)
+		existed[successfulIteration] = true
 	}
+
+	//check final updated account balances
+	updatedAccount1, err := testQueries.GetAccount(context.Background(), account1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedAccount1)
+
+	updatedAccount2, err := testQueries.GetAccount(context.Background(), account2.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedAccount2)
+
+	fmt.Printf(">> balances after transfer:\n Account 1 = %d \n Account 2 = %d \n", updatedAccount1.Balance, updatedAccount2.Balance)
+	require.Equal(t, account1.Balance-amount*int64(concurrentTransactions), updatedAccount1.Balance)
+	require.Equal(t, account2.Balance+amount*int64(concurrentTransactions), updatedAccount2.Balance)
 }
