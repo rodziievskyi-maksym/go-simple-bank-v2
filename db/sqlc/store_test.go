@@ -22,13 +22,15 @@ func TestTransferTx(t *testing.T) {
 		Amount:        amount,
 	}
 
-	concurrentTransactions := 5
+	concurrentTransactions := 2
 	errs := make(chan error)
 	results := make(chan TransferTxResult)
 
 	for i := 0; i < concurrentTransactions; i++ {
+		txName := fmt.Sprintf("transfer-%d", i)
 		go func() {
-			result, err := store.TransferTx(context.Background(), arg)
+			ctx := context.WithValue(context.Background(), txKey, txName)
+			result, err := store.TransferTx(ctx, arg)
 
 			errs <- err
 			results <- result

@@ -6,6 +6,8 @@ import (
 	"fmt"
 )
 
+var txKey = struct{}{}
+
 type Store struct {
 	*Queries
 	db *sql.DB
@@ -67,6 +69,9 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 	if err := s.execTx(ctx, func(queries *Queries) error {
 		var err error
 
+		txName := ctx.Value(txKey)
+
+		fmt.Println(txName, "create transfer")
 		result.Transfer, err = queries.CreateTransfer(ctx, CreateTransferParams{
 			FromAccountID: arg.FromAccountID,
 			ToAccountID:   arg.ToAccountID,
@@ -76,6 +81,7 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 			return err
 		}
 
+		fmt.Println(txName, "create first entry")
 		result.FromEntry, err = queries.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.FromAccountID,
 			Amount:    -arg.Amount,
@@ -84,6 +90,7 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 			return err
 		}
 
+		fmt.Println(txName, "create second transfer")
 		result.ToEntry, err = queries.CreateEntry(ctx, CreateEntryParams{
 			AccountID: arg.ToAccountID,
 			Amount:    arg.Amount,
@@ -93,17 +100,13 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 		}
 
 		//TODO: It's incorrect
-		//first, get the account
-		account1, err := queries.GetAccount(ctx, arg.FromAccountID)
+		fmt.Println(txName, "get first account")
+		account1, err := queries.GetAccountForUpdate(ctx, arg.FromAccountID)
 		if err != nil {
 			return err
 		}
 
-		account2, err := queries.GetAccount(ctx, arg.ToAccountID)
-		if err != nil {
-			return err
-		}
-
+		fmt.Println(txName, "update first account")
 		result.FromAccount, err = queries.UpdateAccount(ctx, UpdateAccountParams{
 			ID:      arg.FromAccountID,
 			Balance: account1.Balance - arg.Amount,
@@ -112,6 +115,13 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 			return err
 		}
 
+		fmt.Println(txName, "get second account")
+		account2, err := queries.GetAccountForUpdate(ctx, arg.ToAccountID)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(txName, "update second account")
 		result.ToAccount, err = queries.UpdateAccount(ctx, UpdateAccountParams{
 			ID:      arg.ToAccountID,
 			Balance: account2.Balance + arg.Amount,
@@ -122,7 +132,7 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 
 		return nil
 	}); err != nil {
-		return result, nil
+		return result, err
 	}
 
 	return result, nil
