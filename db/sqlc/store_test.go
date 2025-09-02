@@ -22,15 +22,13 @@ func TestTransferTx(t *testing.T) {
 		Amount:        amount,
 	}
 
-	concurrentTransactions := 2
+	concurrentTransactions := 5
 	errs := make(chan error)
 	results := make(chan TransferTxResult)
 
 	for i := 0; i < concurrentTransactions; i++ {
-		txName := fmt.Sprintf("transfer-%d", i)
 		go func() {
-			ctx := context.WithValue(context.Background(), txKey, txName)
-			result, err := store.TransferTx(ctx, arg)
+			result, err := store.TransferTx(context.Background(), arg)
 
 			errs <- err
 			results <- result
@@ -87,7 +85,7 @@ func TestTransferTx(t *testing.T) {
 		require.NotEmpty(t, toAccount)
 		require.Equal(t, account2.ID, toAccount.ID)
 
-		fmt.Printf(">> balances on [%d] TX:\n Account 1 = %d \n Account 2 = %d \n", i, fromAccount.Balance, toAccount.Balance)
+		fmt.Printf(">> balances on [%d] TX:\n Account 1 = %d \n Account 2 = %d \n", i+1, fromAccount.Balance, toAccount.Balance)
 
 		// check account balances diff
 		//must be equal to amount variable -> account1.Balance = 761 - fromAccount.Balance = 751 (subtracted amount) = 10
