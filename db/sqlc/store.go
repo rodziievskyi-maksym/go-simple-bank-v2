@@ -92,20 +92,22 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 			return err
 		}
 
-		result.FromAccount, err = queries.AddAccountBalance(ctx, AddAccountBalanceParams{
-			ID:     arg.FromAccountID,
-			Amount: -arg.Amount,
-		})
-		if err != nil {
-			return err
-		}
+		// The best way to avoid database transaction deadlocks is to have consistent order of queries
+		// Always update the smallest account id first.
 
-		result.ToAccount, err = queries.AddAccountBalance(ctx, AddAccountBalanceParams{
-			ID:     arg.ToAccountID,
-			Amount: arg.Amount,
-		})
-		if err != nil {
-			return err
+		initPayload := NewPayload(ctx, queries, arg)
+
+		if arg.FromAccountID < arg.ToAccountID {
+			result.FromAccount, result.ToAccount, err = updateAccountBalance(initPayload)
+			if err != nil {
+				return err
+			}
+		} else {
+			initPayload.swap()
+			result.ToAccount, result.FromAccount, err = updateAccountBalance(initPayload)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -114,4 +116,56 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferT
 	}
 
 	return result, nil
+}
+
+type UpdateAccountBalancePayload struct {
+	ctx               context.Context
+	queries           *Queries
+	smallestAccountID int64
+	amountToSmallest  int64
+	biggestAccountID  int64
+	amountToBiggest   int64
+}
+
+func NewPayload(ctx context.Context, q *Queries, arg TransferTxParams) *UpdateAccountBalancePayload {
+	return &UpdateAccountBalancePayload{
+		ctx:               ctx,
+		queries:           q,
+		smallestAccountID: arg.FromAccountID,
+		amountToSmallest:  -arg.Amount,
+		biggestAccountID:  arg.ToAccountID,
+		amountToBiggest:   arg.Amount,
+	}
+}
+
+func (p *UpdateAccountBalancePayload) swap() {
+	smallestAccountID := p.smallestAccountID
+	amountToSmallest := p.amountToSmallest
+
+	p.smallestAccountID = p.biggestAccountID
+	p.amountToSmallest = p.amountToBiggest
+	p.biggestAccountID = smallestAccountID
+	p.amountToBiggest = amountToSmallest
+}
+
+func updateAccountBalance(payload *UpdateAccountBalancePayload) (updatedAccount1, updatedAccount2 Account, err error) {
+	if payload != nil {
+		updatedAccount1, err = payload.queries.AddAccountBalance(payload.ctx, AddAccountBalanceParams{
+			ID:     payload.smallestAccountID,
+			Amount: payload.amountToSmallest,
+		})
+		if err != nil {
+			return
+		}
+
+		updatedAccount2, err = payload.queries.AddAccountBalance(payload.ctx, AddAccountBalanceParams{
+			ID:     payload.biggestAccountID,
+			Amount: payload.amountToBiggest,
+		})
+		if err != nil {
+			return
+		}
+	}
+
+	return
 }

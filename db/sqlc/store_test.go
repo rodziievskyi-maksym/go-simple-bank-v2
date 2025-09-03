@@ -8,6 +8,58 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestTransferTxDeadlock(t *testing.T) {
+	store := NewStore(testDB)
+
+	account1 := createRandomAccount(t)
+	account2 := createRandomAccount(t)
+	fmt.Printf(">> balances before transfer:\n Account 1 = %d \n Account 2 = %d \n", account1.Balance, account2.Balance)
+
+	amount := int64(10)
+
+	concurrentTransactions := 10
+	errs := make(chan error)
+
+	for i := 0; i < concurrentTransactions; i++ {
+		fromAccountID := account1.ID
+		toAccountID := account2.ID
+
+		//here I have to send 2 diff. params structs with vice versa accounts order
+		if i%2 == 1 { //odd numbers like 1,3,5...
+			fromAccountID = account2.ID
+			toAccountID = account1.ID
+		}
+
+		go func() {
+			_, err := store.TransferTx(context.Background(), TransferTxParams{
+				FromAccountID: fromAccountID,
+				ToAccountID:   toAccountID,
+				Amount:        amount,
+			})
+
+			errs <- err
+		}()
+	}
+
+	for i := 0; i < concurrentTransactions; i++ {
+		err := <-errs
+		require.NoError(t, err)
+	}
+
+	//final account checks
+	updatedAccount1, err := testQueries.GetAccount(context.Background(), account1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedAccount1)
+
+	updatedAccount2, err := testQueries.GetAccount(context.Background(), account2.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedAccount2)
+
+	fmt.Printf(">> balances after transfer:\n Account 1 = %d \n Account 2 = %d \n", updatedAccount1.Balance, updatedAccount2.Balance)
+	require.Equal(t, account1.Balance, updatedAccount1.Balance)
+	require.Equal(t, account2.Balance, updatedAccount2.Balance)
+}
+
 func TestTransferTx(t *testing.T) {
 	store := NewStore(testDB)
 
