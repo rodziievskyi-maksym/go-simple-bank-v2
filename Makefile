@@ -35,8 +35,7 @@ build:
 	@echo "::> Finished!"
 
 run:
-	@go build -o ${BINARIES}/${BINARY_NAME} ${MAIN_DIR}
-	@${BINARIES}/${BINARY_NAME}
+	@go run ${MAIN_DIR}/main.go
 
 clean:
 	@echo "::> Cleaning..."
