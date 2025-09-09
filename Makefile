@@ -10,6 +10,8 @@ GIT_LOCAL_NAME = "rodziievskyi-maksym"
 GIT_LOCAL_EMAIL = "rodziyevskydev@gmail.com"
 GITHUB = "github.com/${GIT_LOCAL_NAME}/${PROJECT_NAME}"
 
+GITHUB_ACTIONS_GO_DEFAULT_CONFIG = "name: Go\n\non:\n  push:\n    branches: [ \"main\" ]\n  pull_request:\n    branches: [ \"main\" ]\n\njobs:\n\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n\n    - name: Set up Go\n      uses: actions/setup-go@v4\n      with:\n        go-version: '1.20'\n\n    - name: Build\n      run: go build -v ./...\n\n    - name: Test\n      run: go test -v ./..."
+
 #PostgreSQL
 POSTGRES_USER = "dev"
 POSTGRES_PASS = "devpass"
@@ -64,6 +66,11 @@ git-init:
 	@git push -u origin main
 	@echo "::> Finished"
 
+create-github-actions:
+	mkdir -p .github/workflows
+	touch .github/workflows/ci.yml && echo ${GITHUB_ACTIONS_GO_DEFAULT_CONFIG} > .github/workflows/ci.yml
+
+
 ## Database operations
 DOCKER_CONTAINER_NAME = go-simple-bank-db-v2
 postgres:
@@ -101,4 +108,4 @@ test:
 mock:
 	@mockgen -destination internal/repo/mock/store.go github.com/max-rodziyevsky/go-simple-bank/internal/repo Store
 
-.PNONY: init build run clean local-git git-init postgres create-db drop-db migrate-up migrate-down sqlc test mock migrate-down-last migrate-up-last
+.PNONY: init build run clean local-git git-init postgres create-db drop-db migrate-up migrate-down sqlc test mock migrate-down-last migrate-up-last create-github-actions
