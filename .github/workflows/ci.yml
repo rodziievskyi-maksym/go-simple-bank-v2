@@ -21,7 +21,7 @@ jobs:
         # Provide the password for postgres
         env:
           POSTGRES_USER: dev
-          POSTGRES_PASS: devpass
+          POSTGRES_PASSWORD: devpass
           POSTGRES_DB: go-simple-bank-v2
           POSTGRES_PORT: 5435
         # Set health checks to wait until postgres has started
