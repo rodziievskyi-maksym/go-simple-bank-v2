@@ -23,7 +23,8 @@ jobs:
           POSTGRES_USER: dev
           POSTGRES_PASSWORD: devpass
           POSTGRES_DB: go-simple-bank-v2
-          POSTGRES_PORT: 5435
+        ports:
+          - 5435:5432
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
