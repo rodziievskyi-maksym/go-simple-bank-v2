@@ -5,19 +5,19 @@ import (
 	"log"
 
 	"github.com/rodziievskyi-maksym/go-simple-bank-v2/api"
+	"github.com/rodziievskyi-maksym/go-simple-bank-v2/config"
 	"github.com/rodziievskyi-maksym/go-simple-bank-v2/db/sqlc"
 
 	_ "github.com/lib/pq"
 )
 
-const (
-	dbDriver      = "postgres"
-	dbSource      = "postgresql://dev:devpass@localhost:5435/go-simple-bank-v2?sslmode=disable"
-	serverAddress = "0.0.0.0:8080"
-)
-
 func main() {
-	conn, err := sql.Open(dbDriver, dbSource)
+	cfg, err := config.Load(".")
+	if err != nil {
+		log.Fatal("cannot load cfg file: ", err)
+	}
+
+	conn, err := sql.Open(cfg.DBDriver, cfg.DBSource)
 	if err != nil {
 		log.Fatalf("cannot connect to db: %v", err)
 	}
@@ -25,7 +25,7 @@ func main() {
 	store := db.NewStore(conn)
 	server := api.NewServer(store)
 
-	if err = server.ServeHTTP(serverAddress); err != nil {
+	if err = server.ServeHTTP(cfg.ServerAddress); err != nil {
 		log.Fatal("cannot start server:", err)
 	}
 }

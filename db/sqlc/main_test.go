@@ -7,20 +7,19 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
-)
-
-const (
-	dbDriver = "postgres"
-	dbSource = "postgresql://dev:devpass@localhost:5435/go-simple-bank-v2?sslmode=disable"
+	"github.com/rodziievskyi-maksym/go-simple-bank-v2/config"
 )
 
 var testQueries *Queries
 var testDB *sql.DB
 
 func TestMain(t *testing.M) {
-	var err error
+	cfg, err := config.Load("../../")
+	if err != nil {
+		log.Fatal("cannot load config file:", err)
+	}
 
-	testDB, err = sql.Open(dbDriver, dbSource)
+	testDB, err = sql.Open(cfg.DBDriver, cfg.DBSource)
 	if err != nil {
 		log.Fatalf("cannot connect to db: %v", err)
 	}
