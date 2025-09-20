@@ -105,6 +105,6 @@ test:
 	go test -v -cover ./...
 
 mock:
-	@mockgen -destination internal/repo/mock/store.go github.com/max-rodziyevsky/go-simple-bank/internal/repo Store
+	mockgen -package mockdb -destination db/mock/store.go github.com/rodziievskyi-maksym/go-simple-bank-v2/db/sqlc Store
 
 .PNONY: init build run clean local-git git-init postgres create-db drop-db migrate-up migrate-down sqlc test mock migrate-down-last migrate-up-last create-github-actions

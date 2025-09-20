@@ -6,19 +6,24 @@ import (
 	"fmt"
 )
 
-type Store struct {
+type Store interface {
+	Querier
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+}
+
+type SQLStore struct {
 	*Queries
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
 }
 
-func (s *Store) execTx(ctx context.Context, fn func(queries *Queries) error) error {
+func (s *SQLStore) execTx(ctx context.Context, fn func(queries *Queries) error) error {
 	/*		//TxOptions holds the transaction options to be used in [DB.BeginTx].
 	type TxOptions struct {
 			//Isolation is the transaction isolation level.
@@ -61,7 +66,7 @@ type TransferTxResult struct {
 
 // TransferTx performs money from one account to another.
 // It creates Transfer record, Entry records from and to, updates accounts balance within a single database transaction
-func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
+func (s *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 
 	if err := s.execTx(ctx, func(queries *Queries) error {
