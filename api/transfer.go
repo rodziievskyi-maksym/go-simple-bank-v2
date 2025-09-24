@@ -1,8 +1,6 @@
 package api
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -40,7 +38,8 @@ func (s *Server) createTransfer(c *gin.Context) {
 
 	result, err := s.store.TransferTx(c, arg)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		statusCode, response := handleDatabaseError(err)
+		c.JSON(statusCode, response)
 		return
 	}
 
@@ -50,12 +49,8 @@ func (s *Server) createTransfer(c *gin.Context) {
 func (s *Server) validAccount(c *gin.Context, accountID int64, currency string) bool {
 	account, err := s.store.GetAccount(c, accountID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, errorResponse(err))
-			return false
-		}
-
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		statusCode, response := handleDatabaseError(err)
+		c.JSON(statusCode, response)
 		return false
 	}
 

@@ -1,12 +1,12 @@
 package api
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/rodziievskyi-maksym/go-simple-bank-v2/db/sqlc"
+
+	_ "github.com/lib/pq"
 )
 
 type createAccountRequest struct {
@@ -28,7 +28,8 @@ func (s *Server) createAccount(c *gin.Context) {
 
 	account, err := s.store.CreateAccount(c, arg)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		statusCode, response := handleDatabaseError(err)
+		c.JSON(statusCode, response)
 		return
 	}
 
@@ -58,7 +59,8 @@ func (s *Server) listAccounts(c *gin.Context) {
 
 	accounts, err := s.store.ListAccounts(c, arg)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		statusCode, response := handleDatabaseError(err)
+		c.JSON(statusCode, response)
 		return
 	}
 
@@ -78,12 +80,8 @@ func (s *Server) getAccount(c *gin.Context) {
 
 	account, err := s.store.GetAccount(c, request.ID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, errorResponse(errors.New("account not found")))
-			return
-		}
-
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		statusCode, response := handleDatabaseError(err)
+		c.JSON(statusCode, response)
 		return
 	}
 
